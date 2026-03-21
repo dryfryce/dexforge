@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEXFORGE — APK Decompiler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #06060b;
+  --bg-secondary: #0c0c14;
+  --bg-card: #10101a;
+  --bg-card-hover: #141420;
+  --border: #1a1a2e;
+  --border-glow: #00ff4120;
+  --accent: #00ff41;
+  --accent-dim: #00ff4130;
+  --accent-cyan: #00d4ff;
+  --accent-amber: #ffb700;
+  --accent-red: #ff3e3e;
+  --text-primary: #e0e0e8;
+  --text-secondary: #6a6a80;
+  --text-muted: #3a3a50;
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0,255,65,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,65,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scanline effect */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 12px rgba(0,255,65,0.4));
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--text-primary);
+  text-shadow: 0 0 30px rgba(0,255,65,0.15);
+}
+
+.logo-text span {
+  color: var(--accent);
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+/* Upload Zone */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 64px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, var(--accent-dim), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--bg-card);
+  box-shadow: 0 0 40px rgba(0,255,65,0.06), inset 0 0 40px rgba(0,255,65,0.02);
+}
+
+.upload-zone:hover::before, .upload-zone.drag-over::before {
+  opacity: 1;
+}
+
+.upload-icon {
+  width: 56px;
+  height: 56px;
+  color: var(--text-muted);
+  margin: 0 auto 20px;
+  transition: color 0.3s ease, transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.upload-zone:hover .upload-icon {
+  color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.upload-title {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.upload-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 1;
+}
+
+.upload-formats {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.format-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  letter-spacing: 1px;
+}
+
+#fileInput {
+  display: none;
+}
+
+/* Processing Section */
+.processing-section {
+  display: none;
+  margin-top: 32px;
+}
+
+.processing-section.active {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.file-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.file-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.file-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Progress */
+.progress-container {
+  margin-bottom: 24px;
+}
+
+.progress-step {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-step .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-dim);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-bar-outer {
+  height: 4px;
+  background: var(--bg-card);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-cyan));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  width: 0%;
+  box-shadow: 0 0 10px rgba(0,255,65,0.3);
+}
+
+/* Log */
+.log-container {
+  margin-top: 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.log-container::-webkit-scrollbar { width: 4px; }
+.log-container::-webkit-scrollbar-track { background: transparent; }
+.log-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.log-entry { padding: 2px 0; }
+.log-entry.warning { color: var(--accent-amber); }
+.log-entry.error { color: var(--accent-red); }
+.log-entry.success { color: var(--accent); }
+
+/* Results Section */
+.results-section {
+  display: none;
+  margin-top: 32px;
+}
+
+.results-section.active {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+/* Certificate Card */
+.cert-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: border-color 0.3s ease;
+}
+
+.cert-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0,255,65,0.04);
+}
+
+.cert-card h3 {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.hash-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.hash-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hash-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 70px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hash-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-cyan);
+  word-break: break-all;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.hash-value:hover {
+  background: rgba(0,212,255,0.08);
+}
+
+.hash-value.copied {
+  color: var(--accent);
+}
+
+.cert-raw {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.cert-raw::-webkit-scrollbar { width: 4px; }
+.cert-raw::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sig-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(255,183,0,0.1);
+  color: var(--accent-amber);
+  border: 1px solid rgba(255,183,0,0.2);
+  margin-top: 12px;
+}
+
+/* Download Button */
+.download-section {
+  text-align: center;
+  margin-top: 32px;
+  padding: 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.download-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 0 30px rgba(0,255,65,0.2);
+}
+
+.download-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.download-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
+
+/* New Upload Button */
+.new-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+.new-upload-btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.copy-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.copy-link-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,255,65,0.05);
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.footer-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container { padding: 20px 12px; }
+  .logo-text { font-size: 22px; letter-spacing: 2px; }
+  .logo-icon { width: 36px; height: 36px; }
+  .logo-mark { gap: 10px; }
+  .subtitle { font-size: 11px; letter-spacing: 2px; }
+  .upload-zone { padding: 36px 16px; }
+  .upload-icon { width: 40px; height: 40px; }
+  .upload-title { font-size: 15px; }
+  .upload-formats { gap: 6px; }
+  .format-badge { font-size: 10px; padding: 3px 8px; }
+  .hash-row { flex-direction: column; gap: 4px; }
+  .hash-label { min-width: unset; }
+  .hash-value { font-size: 11px; word-break: break-all; }
+  .file-info-bar { flex-wrap: wrap; padding: 12px 14px; gap: 8px; }
+  .file-info-bar input { font-size: 12px; min-width: 0; }
+  .section-title { font-size: 12px; letter-spacing: 2px; }
+  .cert-card { padding: 16px; }
+  .cert-card h3 { font-size: 11px; }
+  .download-section { padding: 20px 16px; }
+  .download-btn { font-size: 12px; padding: 12px 20px; letter-spacing: 1px; }
+  .download-meta { font-size: 11px; }
+  .footer { margin-top: 40px; }
+
+  /* Tool picker mobile */
+  .tool-picker-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .tool-picker-title { font-size: 12px; text-align: center; }
+  .tool-presets { flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .preset-btn { font-size: 10px; padding: 5px 10px; flex: 1; min-width: 70px; text-align: center; }
+  .tool-grid { grid-template-columns: 1fr; max-height: 320px; gap: 8px; }
+  .tool-item { padding: 10px 12px; }
+  .tool-name { font-size: 12px; }
+  .tool-desc { font-size: 10px; }
+  .tool-size { font-size: 9px; }
+  .tool-summary { flex-direction: column; gap: 4px; text-align: center; font-size: 11px; padding: 8px 12px; }
+  .start-btn { font-size: 13px; padding: 14px; letter-spacing: 2px; }
+
+  /* Progress mobile */
+  .progress-step { font-size: 12px; }
+  .log-container { font-size: 10px; max-height: 140px; padding: 10px 12px; }
+
+  /* Play Store mobile */
+  #playStoreSection > div:nth-child(2) { flex-direction: column !important; max-width: 100% !important; }
+  #playStoreSection input[type="text"] { width: 100% !important; font-size: 12px !important; }
+  #playStoreSection button { width: 100%; }
+  #playStoreResults { max-width: 100% !important; }
+
+  /* File tree mobile */
+  .tree-summary { flex-wrap: wrap; gap: 8px; }
+  .tree-stat { font-size: 11px; padding: 4px 10px; }
+  .file-tree { font-size: 11px; }
+  .tree-file .file-name { font-size: 11px; }
+
+  /* Cert raw mobile */
+  .cert-raw { font-size: 10px; padding: 12px; max-height: 200px; }
+
+  /* New upload button */
+  .new-upload-btn { font-size: 11px; }
+}
+
+@media (max-width: 400px) {
+  .container { padding: 16px 8px; }
+  .logo-text { font-size: 18px; letter-spacing: 1px; }
+  .logo-icon { width: 28px; height: 28px; }
+  .upload-zone { padding: 28px 12px; }
+  .upload-title { font-size: 14px; }
+  .tool-grid { max-height: 260px; }
+  .preset-btn { font-size: 9px; padding: 4px 8px; }
+  .cert-card { padding: 12px; }
+  .download-btn { font-size: 11px; padding: 10px 16px; }
+}
+
+/* Tool Picker */
+.tool-picker {
+  display: none;
+  margin-top: 32px;
+  animation: fadeIn 0.4s ease;
+}
+.tool-picker.active { display: block; }
+
+.tool-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tool-picker-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.tool-presets {
+  display: flex;
+  gap: 8px;
+}
+
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+.preset-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tool-grid::-webkit-scrollbar { width: 4px; }
+.tool-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.tool-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tool-item:hover { border-color: rgba(0,255,65,0.3); background: var(--bg-card-hover); }
+.tool-item.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,255,65,0.08); }
+.tool-item.unavailable { opacity: 0.35; pointer-events: none; }
+
+.tool-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tool-item.selected .tool-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.tool-item.selected .tool-check::after {
+  content: '✓';
+  color: var(--bg-primary);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tool-info { flex: 1; min-width: 0; }
+
+.tool-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-desc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.tool-size {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.badge-large {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255,183,0,0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(255,183,0,0.3);
+  letter-spacing: 1px;
+}
+
+.tool-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tool-summary span { color: var(--accent); font-weight: 600; }
+
+.start-btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.start-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 0 40px rgba(0,255,65,0.15);
+}
+
+.start-btn:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 100;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* File Tree */
+.tree-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tree-stat {
+  padding: 6px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.tree-stat span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.file-tree {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 12px 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.file-tree::-webkit-scrollbar { width: 4px; }
+.file-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.tree-folder {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tree-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  color: var(--accent-cyan);
+}
+
+.tree-folder-header:hover {
+  background: rgba(0,212,255,0.05);
+}
+
+.tree-folder-header .arrow {
+  width: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tree-folder-header.open .arrow {
+  transform: rotate(90deg);
+}
+
+.tree-folder-header .folder-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tree-folder-header .folder-name {
+  flex: 1;
+}
+
+.tree-folder-header .folder-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.tree-folder-children {
+  display: none;
+  padding-left: 20px;
+}
+
+.tree-folder-children.open {
+  display: block;
+}
+
+.tree-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 12px 1px 20px;
+  color: var(--text-secondary);
+  transition: background 0.15s ease;
+}
+
+.tree-file:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.tree-file .file-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.tree-file .file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-file .file-name.so { color: var(--accent); }
+.tree-file .file-name.dex { color: var(--accent-amber); }
+.tree-file .file-name.xml { color: #c678dd; }
+.tree-file .file-name.png, .tree-file .file-name.jpg, .tree-file .file-name.webp { color: #e06c75; }
+.tree-file .file-name.smali { color: #98c379; }
+
+.tree-file .file-size {
+  color: var(--text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.tree-search {
+  width: 100%;
+  padding: 8px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.tree-search:focus {
+  border-color: var(--accent);
+}
+
+.tree-search::placeholder {
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-mark">
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      <div class="logo-text">DEX<span>FORGE</span></div>
+    </div>
+    <p class="subtitle">APK Decompilation &amp; Analysis Engine</p>
+  </header>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone">
+    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <p class="upload-title">Drop your APK here or click to upload</p>
+    <p class="upload-hint">Drag &amp; drop or browse files</p>
+    <div class="upload-formats">
+      <span class="format-badge">.APK</span>
+      <span class="format-badge">.APKS</span>
+    </div>
+    <input type="file" id="fileInput" accept=".apk,.apks">
+  </div>
+
+  <!-- Play Store Search -->
+  <div id="playStoreSection" style="margin-top:20px;text-align:center">
+    <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-bottom:12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+      Or pull directly from Play Store
+    </div>
+    <div style="display:flex;gap:8px;max-width:600px;margin:0 auto">
+      <input type="text" id="playStoreInput" placeholder="Package name (e.g. com.whatsapp)" style="flex:1;padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:var(--font-mono);font-size:13px;outline:none;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')searchPlayStore()">
+      <input type="text" id="versionCodeInput" placeholder="Version code (optional)" style="width:150px;padding:12px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--accent-amber);font-family:var(--font-mono);font-size:12px;outline:none;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--accent-amber)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')searchPlayStore()">
+      <button onclick="searchPlayStore()" style="padding:12px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-family:var(--font-mono);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Fetch
+      </button>
+    </div>
+    <div id="playStoreResults" style="max-width:500px;margin:12px auto 0;text-align:left"></div>
+  </div>
+
+  <!-- Tool Picker -->
+  <div class="tool-picker" id="toolPicker">
+    <div class="file-info-bar" style="margin-bottom:20px">
+      <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <input type="text" id="pickerFileName" value="—" style="flex:1;background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 8px;color:var(--text-primary);font-family:var(--font-mono);font-size:14px;outline:none;transition:border-color 0.2s;overflow:hidden;text-overflow:ellipsis" onfocus="this.style.borderColor='var(--accent)';this.select()" onblur="this.style.borderColor='transparent'">
+      <span class="file-size" id="pickerFileSize">—</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;cursor:pointer" title="Edit filename" onclick="$('pickerFileName').focus()"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </div>
+
+    <div class="tool-picker-header">
+      <div class="tool-picker-title">Bundle RE Tools</div>
+      <div class="tool-presets">
+        <button class="preset-btn" data-preset="recommended" onclick="applyPreset('recommended')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Recommended</button>
+        <button class="preset-btn" data-preset="all" onclick="applyPreset('all')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> All Tools</button>
+        <button class="preset-btn" data-preset="custom" onclick="applyPreset('custom')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Custom</button>
+        <button class="preset-btn" data-preset="none" onclick="applyPreset('none')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> None</button>
+      </div>
+    </div>
+
+    <div class="tool-summary" id="toolSummary">
+      <div><span id="toolCount">0</span> tools selected</div>
+      <div id="toolTotalSize">—</div>
+    </div>
+
+    <div class="tool-grid" id="toolGrid"></div>
+
+    <button class="start-btn" id="startBtn" onclick="startAnalysis()"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:middle;margin-right:8px"><polygon points="5 3 19 12 5 21 5 3"/></svg>Start Analysis</button>
+  </div>
+
+  <!-- Processing Section -->
+  <div class="processing-section" id="processingSection">
+    <div class="file-info-bar">
+      <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <span class="file-name" id="fileName">—</span>
+      <span class="file-size" id="fileSize">—</span>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-step" id="progressStep">
+        <div class="spinner"></div>
+        <span>Initializing...</span>
+      </div>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="log-container" id="logContainer"></div>
+  </div>
+
+  <!-- Results Section -->
+  <div class="results-section" id="resultsSection">
+
+    <!-- Hashes -->
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+      File Hashes
+    </div>
+    <div class="cert-card" id="hashCard"></div>
+
+    <!-- APKS Hashes (if applicable) -->
+    <div id="apksHashSection" style="display:none">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+        </svg>
+        APKS Bundle Hashes
+      </div>
+      <div class="cert-card" id="apksHashCard"></div>
+    </div>
+
+    <!-- Certificate (extracted APK) -->
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Signing Certificate
+    </div>
+    <div class="cert-card" id="certCard"></div>
+
+    <!-- Certificate (original APKS) -->
+    <div id="apksCertSection" style="display:none">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+        </svg>
+        Original APKS Signature
+      </div>
+      <div class="cert-card" id="apksCertCard"></div>
+    </div>
+
+    <!-- File Overview -->
+    <div id="fileOverviewSection" style="display:none">
+      <div class="section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+        </svg>
+        Output Archive Contents
+      </div>
+      <div class="cert-card" id="fileOverviewCard"></div>
+    </div>
+
+    <!-- Download -->
+    <div class="download-section" id="downloadSection"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p class="footer-text">DEXFORGE // Built for reverse engineers</p>
+  </footer>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+function $(id) { return document.getElementById(id); }
+var uploadZone = $('uploadZone');
+var fileInput = $('fileInput');
+var processingSection = $('processingSection');
+var resultsSection = $('resultsSection');
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+
+// Toast
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 2000);
+}
+
+// Copy to clipboard
+function copyHash(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function() { showToast('Copied to clipboard'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied to clipboard');
+  }
+}
+
+// Drag & drop
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+function addLog(text, type = '') {
+  const log = $('logContainer');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (type ? ' ' + type : '');
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+  entry.textContent = `[${ts}] ${text}`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+var pendingFile = null;
+var pendingPlayStore = null;
+
+async function searchPlayStore() {
+  var q = $('playStoreInput').value.trim();
+  if (!q) return;
+  var container = $('playStoreResults');
+  container.innerHTML = '<div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);padding:12px"><div class="spinner" style="display:inline-block;width:12px;height:12px;border:2px solid var(--accent-dim);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px"></div>Searching Play Store...</div>';
+
+  try {
+    var resp = await fetch('/api/playstore/search?q=' + encodeURIComponent(q));
+    var data = await resp.json();
+    if (!data.ok || !data.results || data.results.length === 0) {
+      container.innerHTML = '<div style="font-family:var(--font-mono);font-size:12px;color:var(--accent-red);padding:8px">No results found. Try a full package name.</div>';
+      return;
+    }
+    var customVc = $('versionCodeInput').value.trim();
+    var html = '';
+    for (var i = 0; i < data.results.length; i++) {
+      var app = data.results[i];
+      var vc = customVc || app.versionCode || '';
+      html += '<div class="playstore-result" onclick="selectPlayStoreApp(\'' + esc(app.id) + '\',\'' + esc(app.title) + '\',\'' + esc(app.version) + '\',' + (vc ? '\'' + esc(String(vc)) + '\'' : 'null') + ')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.2s;margin-bottom:6px" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>' +
+        '<div style="flex:1;min-width:0"><div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary)">' + esc(app.title) + '</div>' +
+        '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">' + esc(app.id) + (customVc ? ' • <span style="color:var(--accent-amber)">vc:' + esc(customVc) + '</span>' : (app.version ? ' • v' + esc(app.version) : '')) + (app.creator ? ' • ' + esc(app.creator) : '') + '</div></div>' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        '</div>';
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div style="font-family:var(--font-mono);font-size:12px;color:var(--accent-red);padding:8px">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+function selectPlayStoreApp(packageName, title, version, versionCode) {
+  pendingPlayStore = { packageName: packageName, title: title, version: version, versionCode: versionCode || null };
+  pendingFile = null;
+
+  // Show tool picker
+  uploadZone.style.display = 'none';
+  $('playStoreResults').innerHTML = '';
+  $('playStoreSection').style.display = 'none';
+  $('toolPicker').classList.add('active');
+  $('pickerFileName').value = title.replace(/[^a-zA-Z0-9 _\-\.]/g, '').trim();
+  $('pickerFileSize').textContent = packageName + (versionCode ? ' • vc:' + versionCode : '');
+  applyPreset('recommended');
+}
+var toolRegistry = {};
+var recommendedTools = [];
+var selectedToolIds = new Set();
+
+// Check if we're on a job page
+var jobMatch = window.location.pathname.match(/^\/job\/([a-z0-9-]+)$/i);
+if (jobMatch) {
+  var resumeJobId = jobMatch[1];
+  // Hide upload UI, show processing
+  uploadZone.style.display = 'none';
+  $('playStoreSection').style.display = 'none';
+
+  fetch('/api/job/' + resumeJobId).then(r => r.json()).then(function(job) {
+    if (!job.ok) { addLog('Job not found: ' + resumeJobId, 'error'); return; }
+    processingSection.classList.add('active');
+    $('fileName').textContent = job.filename || resumeJobId;
+    $('fileSize').textContent = '';
+    $('progressBar').style.width = (job.percent || 0) + '%';
+    $('progressStep').querySelector('span').textContent = job.step || 'Loading...';
+    addLog('Reconnecting to job ' + resumeJobId + '...');
+
+    if (job.status === 'complete') {
+      $('progressStep').querySelector('span').textContent = 'Complete!';
+      $('progressStep').querySelector('.spinner').style.display = 'none';
+      $('progressBar').style.width = '100%';
+      addLog('Job already complete.', 'success');
+      if (job.certInfo) renderResults(job.certInfo);
+      if (job.fileOverview) renderFileOverview(job.fileOverview);
+      if (job.downloadUrl) renderDownload({ downloadUrl: job.downloadUrl, zipSize: job.zipSize || 0, soCount: job.soCount || 0, filename: job.filename });
+      resultsSection.classList.add('active');
+    } else if (job.status === 'error') {
+      $('progressStep').querySelector('span').textContent = 'Error';
+      $('progressStep').querySelector('.spinner').style.display = 'none';
+      addLog('Error: ' + (job.error || 'Unknown'), 'error');
+    } else {
+      // Still processing — connect SSE
+      addLog('Job in progress (' + (job.percent || 0) + '%)...');
+      connectSSE(resumeJobId);
+    }
+  }).catch(function(e) { addLog('Failed to load job: ' + e.message, 'error'); });
+}
+
+// Fetch tool registry on load
+fetch('/api/tools').then(r => r.json()).then(data => {
+  toolRegistry = data.tools;
+  recommendedTools = data.recommended;
+  renderToolGrid();
+}).catch(e => console.error('Failed to load tools:', e));
+
+function renderToolGrid() {
+  var grid = $('toolGrid');
+  grid.innerHTML = '';
+  var categories = {};
+  for (var id in toolRegistry) {
+    var t = toolRegistry[id];
+    var cat = t.category || 'other';
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push({ id: id, ...t });
+  }
+  for (var id in toolRegistry) {
+    var t = toolRegistry[id];
+    var el = document.createElement('div');
+    el.className = 'tool-item' + (t.available === false ? ' unavailable' : '');
+    el.dataset.toolId = id;
+    el.innerHTML =
+      '<div class="tool-check"></div>' +
+      '<div class="tool-info"><div class="tool-name">' + esc(t.name) +
+      (t.large ? ' <span class="badge-large">LARGE</span>' : '') +
+      '</div><div class="tool-desc">' + esc(t.desc) + '</div></div>' +
+      '<div class="tool-size">' + esc(t.size) + '</div>';
+    el.addEventListener('click', function() { toggleTool(this.dataset.toolId); });
+    grid.appendChild(el);
+  }
+}
+
+function toggleTool(id) {
+  if (selectedToolIds.has(id)) selectedToolIds.delete(id);
+  else selectedToolIds.add(id);
+  updateToolUI();
+}
+
+function applyPreset(preset) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  var btn = document.querySelector('.preset-btn[data-preset="' + preset + '"]');
+  if (btn) btn.classList.add('active');
+
+  selectedToolIds.clear();
+  if (preset === 'recommended') {
+    recommendedTools.forEach(id => { if (toolRegistry[id] && toolRegistry[id].available !== false) selectedToolIds.add(id); });
+  } else if (preset === 'all') {
+    for (var id in toolRegistry) { if (toolRegistry[id].available !== false) selectedToolIds.add(id); }
+  } else if (preset === 'none') {
+    // already cleared
+  }
+  // 'custom' = keep current, just mark active
+  updateToolUI();
+}
+
+function updateToolUI() {
+  document.querySelectorAll('.tool-item').forEach(el => {
+    el.classList.toggle('selected', selectedToolIds.has(el.dataset.toolId));
+  });
+  $('toolCount').textContent = selectedToolIds.size;
+  // Estimate total size
+  var total = 0;
+  selectedToolIds.forEach(id => {
+    var t = toolRegistry[id];
+    if (t) { var m = t.size.match(/(\d+)/); if (m) total += parseInt(m[1]); }
+  });
+  $('toolTotalSize').textContent = total > 0 ? '~' + total + ' MB extra' : 'No tools selected';
+}
+
+async function handleFile(file) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (ext !== 'apk' && ext !== 'apks') { showToast('Only .apk and .apks files'); return; }
+
+  // Show tool picker
+  pendingFile = file;
+  uploadZone.style.display = 'none';
+  $('toolPicker').classList.add('active');
+  var nameWithoutExt = file.name.replace(/\.(apk|apks)$/i, '');
+  $('pickerFileName').value = nameWithoutExt;
+  $('pickerFileSize').textContent = formatSize(file.size);
+  applyPreset('recommended');
+}
+
+async function startAnalysis() {
+  if (!pendingFile && !pendingPlayStore) return;
+
+  $('toolPicker').classList.remove('active');
+  resultsSection.classList.remove('active');
+  $('fileOverviewSection').style.display = 'none';
+  processingSection.classList.add('active');
+  $('logContainer').innerHTML = '';
+  $('progressBar').style.width = '0%';
+
+  if (selectedToolIds.size > 0) {
+    addLog('Tools selected: ' + Array.from(selectedToolIds).join(', '));
+  }
+
+  try {
+    var data;
+
+    var customName = $('pickerFileName').value.trim().replace(/[^a-zA-Z0-9 _\-\.]/g, '') || 'output';
+
+  if (pendingPlayStore) {
+      // Play Store download flow
+      $('fileName').textContent = customName;
+      $('fileSize').textContent = pendingPlayStore.packageName;
+      $('progressStep').querySelector('span').textContent = 'Fetching from Play Store...';
+      addLog('Downloading ' + pendingPlayStore.packageName + ' from Play Store...');
+
+      var psBody = {
+        packageName: pendingPlayStore.packageName,
+        tools: Array.from(selectedToolIds),
+        customName: customName
+      };
+      if (pendingPlayStore.versionCode) psBody.versionCode = parseInt(pendingPlayStore.versionCode);
+      var resp = await fetch('/api/playstore/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(psBody)
+      });
+      data = await resp.json();
+      if (data.error) { addLog(data.error, 'error'); return; }
+      addLog('Download initiated. Processing...');
+      $('progressBar').style.width = '5%';
+    } else {
+      // File upload flow
+      var file = pendingFile;
+      $('fileName').textContent = customName;
+      $('fileSize').textContent = formatSize(file.size);
+      $('progressStep').querySelector('span').textContent = 'Uploading...';
+      addLog('Uploading ' + customName + ' (' + formatSize(file.size) + ')...');
+
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('tools', JSON.stringify(Array.from(selectedToolIds)));
+      formData.append('customName', customName);
+
+      var resp = await fetch('/api/upload', { method: 'POST', body: formData });
+      data = await resp.json();
+      if (data.error) { addLog(data.error, 'error'); return; }
+      addLog('Upload complete. Starting decompilation...');
+      $('progressBar').style.width = '5%';
+    }
+
+    // Show job URL
+    var jobUrl = window.location.origin + '/job/' + data.jobId;
+    addLog('Job URL: ' + jobUrl, 'success');
+    window.history.replaceState(null, '', '/job/' + data.jobId);
+
+    connectSSE(data.jobId);
+  } catch(err) {
+    addLog('Upload failed: ' + err.message, 'error');
+  }
+}
+
+function connectSSE(jobId) {
+    var evtSource = new EventSource('/api/progress/' + jobId);
+    var savedCert = null;
+
+    evtSource.onmessage = function(event) {
+      try {
+        var msg = JSON.parse(event.data);
+
+        if (msg.type === 'progress') {
+          $('progressStep').querySelector('span').textContent = msg.step;
+          $('progressBar').style.width = msg.percent + '%';
+          addLog(msg.step);
+        }
+        else if (msg.type === 'certInfo') {
+          savedCert = msg;
+          addLog('Certificate info extracted', 'success');
+        }
+        else if (msg.type === 'fileOverview') {
+          renderFileOverview(msg.overview);
+          addLog('File structure mapped', 'success');
+        }
+        else if (msg.type === 'warning') {
+          addLog(msg.message, 'warning');
+        }
+        else if (msg.type === 'error') {
+          addLog(msg.message, 'error');
+          $('progressStep').querySelector('span').textContent = 'Error!';
+          $('progressStep').querySelector('.spinner').style.display = 'none';
+          evtSource.close();
+        }
+        else if (msg.type === 'complete') {
+          evtSource.close();
+          $('progressStep').querySelector('span').textContent = 'Decompilation complete!';
+          $('progressStep').querySelector('.spinner').style.display = 'none';
+          $('progressBar').style.width = '100%';
+          addLog('Done! ' + msg.soCount + ' native libraries extracted.', 'success');
+          addLog('Archive size: ' + formatSize(msg.zipSize), 'success');
+
+          if (savedCert) renderResults(savedCert);
+          renderDownload(msg);
+          resultsSection.classList.add('active');
+          resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } catch(e) {
+        console.error('SSE parse error:', e);
+      }
+    };
+
+    evtSource.onerror = function() { addLog('Connection lost. Refresh to check status.', 'warning'); evtSource.close(); };
+}
+
+function renderResults(data) {
+  // FILE HASHES (md5/sha1/sha256 of the file itself)
+  var hc = $('hashCard');
+  var fh = data.fileHashes;
+  if (fh) {
+    hc.innerHTML =
+      '<h3>File Hashes — ' + esc(data.filename) + '</h3>' +
+      '<div class="hash-grid">' +
+      row('MD5', fh.md5) +
+      row('SHA-1', fh.sha1) +
+      row('SHA-256', fh.sha256) +
+      '<div class="hash-row"><span class="hash-label">Size</span><span class="hash-value">' + formatSize(fh.size) + '</span></div>' +
+      '</div>';
+    attachCopy(hc);
+  }
+
+  // APKS hashes
+  if (data.apksHashes) {
+    $('apksHashSection').style.display = 'block';
+    var ac = $('apksHashCard');
+    var ah = data.apksHashes;
+    ac.innerHTML =
+      '<h3>APKS Bundle Hashes</h3>' +
+      '<div class="hash-grid">' + row('MD5', ah.md5) + row('SHA-1', ah.sha1) + row('SHA-256', ah.sha256) +
+      '<div class="hash-row"><span class="hash-label">Size</span><span class="hash-value">' + formatSize(ah.size) + '</span></div></div>';
+    attachCopy(ac);
+  } else {
+    $('apksHashSection').style.display = 'none';
+  }
+
+  // SIGNATURE / CERTIFICATE INFO — Extracted APK
+  renderSigCard($('certCard'), data.sigInfo, 'Signature &amp; Certificate Analysis');
+
+  // APKS original signature (if applicable)
+  if (data.apksSigInfo && data.apksSigInfo.flat) {
+    $('apksCertSection').style.display = 'block';
+    renderSigCard($('apksCertCard'), data.apksSigInfo, 'Original APKS Signature');
+  } else {
+    $('apksCertSection').style.display = 'none';
+  }
+}
+
+function renderSigCard(container, sig, title) {
+  if (!sig || !sig.flat) {
+    container.innerHTML = '<h3>' + title + '</h3><p style="color:var(--text-muted)">No signature data</p>';
+    return;
+  }
+  var f = sig.flat;
+  var html = '<h3>' + title + '</h3>';
+
+  if (f.appName || f.packageName) {
+    html += '<div style="margin-bottom:20px;padding:14px 16px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border)">';
+    if (f.appName) html += '<div class="hash-row"><span class="hash-label">App</span><span class="hash-value">' + esc(f.appName) + '</span></div>';
+    if (f.packageName) html += '<div class="hash-row"><span class="hash-label">Package</span><span class="hash-value copyable" style="color:var(--accent-amber)">' + esc(f.packageName) + '</span></div>';
+    if (f.version) html += '<div class="hash-row"><span class="hash-label">Version</span><span class="hash-value">' + esc(f.version) + (f.build ? ' (Build ' + esc(f.build) + ')' : '') + '</span></div>';
+    html += '</div>';
+  }
+
+  var hk = ['MD5','SHA-1','SHA-224','SHA-256','SHA-384','SHA-512'];
+  var hasAny = false;
+  for (var i = 0; i < hk.length; i++) { if (f[hk[i]]) hasAny = true; }
+
+  if (hasAny) {
+    html += '<div style="margin-bottom:20px"><div style="font-family:var(--font-display);font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:12px;text-transform:uppercase">Certificate Hashes</div><div class="hash-grid">';
+    for (var j = 0; j < hk.length; j++) { if (f[hk[j]]) html += row(hk[j], f[hk[j]]); }
+    if (f.CRC32) html += row('CRC32', f.CRC32);
+    if (f.hashCode) html += row('hashCode', f.hashCode);
+    html += '</div></div>';
+  }
+
+  if (f.b64) {
+    html += '<details style="margin-bottom:16px"><summary style="cursor:pointer;font-family:var(--font-display);font-size:11px;letter-spacing:2px;color:var(--accent-cyan);padding:8px 0;text-transform:uppercase">Base64 Encoded Hashes</summary><div class="hash-grid" style="padding:8px 0">';
+    for (var bi = 0; bi < hk.length; bi++) { if (f.b64[hk[bi]]) html += row(hk[bi], f.b64[hk[bi]]); }
+    html += '</div></details>';
+  }
+
+  if (f.keytool && f.keytool.length > 5) {
+    html += '<details style="margin-top:8px"><summary style="cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);padding:8px 0">Keytool Certificate Details</summary><div class="cert-raw">' + esc(f.keytool) + '</div></details>';
+  }
+
+  if (sig.report) {
+    html += '<details style="margin-top:8px"><summary style="cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);padding:8px 0">Full Report</summary><div class="cert-raw">' + esc(sig.report) + '</div></details>';
+  }
+
+  container.innerHTML = html;
+  attachCopy(container);
+}
+
+function row(label, value) {
+  return '<div class="hash-row"><span class="hash-label">' + label + '</span><span class="hash-value copyable">' + esc(value) + '</span></div>';
+}
+
+function attachCopy(container) {
+  container.querySelectorAll('.copyable').forEach(function(el) {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function() { copyHash(this.textContent); });
+  });
+}
+
+function esc(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+function renderDownload(msg) {
+  var fullUrl = window.location.origin + msg.downloadUrl;
+  $('downloadSection').innerHTML =
+    '<a href="' + msg.downloadUrl + '" class="download-btn" download>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+    'Download Archive</a>' +
+    '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px">' +
+    '<p class="download-meta" style="margin:0">' + formatSize(msg.zipSize) + ' // ' + msg.soCount + ' native libs // ' + esc(msg.filename) + '</p>' +
+    '<button class="copy-link-btn" id="copyLinkBtn" title="Copy download link">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+    '</button></div>' +
+    '<button class="new-upload-btn" onclick="resetUI()">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>' +
+    'New Upload</button>';
+
+  $('copyLinkBtn').addEventListener('click', function() {
+    copyHash(fullUrl);
+  });
+}
+
+function renderFileOverview(items) {
+  if (!items || items.length === 0) return;
+  $('fileOverviewSection').style.display = 'block';
+  var card = $('fileOverviewCard');
+  var html = '<div class="file-tree">';
+
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    if (it.isDir) {
+      html += '<div class="tree-file">' +
+        '<svg class="file-icon" style="color:var(--accent-cyan)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' +
+        '<span class="file-name" style="color:var(--accent-cyan)">' + esc(it.name + '/') + '</span>' +
+        '<span class="file-size" style="margin-right:12px;color:var(--text-muted)">' + it.count + ' files</span>' +
+        '<span class="file-size">' + formatSize(it.size) + '</span></div>';
+    } else {
+      var ext = it.name.split('.').pop().toLowerCase();
+      var cls = '';
+      if (ext === 'so') cls = 'so';
+      else if (ext === 'dex') cls = 'dex';
+      else if (ext === 'xml') cls = 'xml';
+      else if (ext === 'png' || ext === 'jpg' || ext === 'webp') cls = 'png';
+
+      html += '<div class="tree-file">' +
+        '<svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+        '<span class="file-name ' + cls + '">' + esc(it.name) + '</span>' +
+        '<span class="file-size">' + formatSize(it.size) + '</span></div>';
+    }
+  }
+
+  html += '</div>';
+  card.innerHTML = html;
+}
+
+function resetUI() {
+  processingSection.classList.remove('active');
+  resultsSection.classList.remove('active');
+  $('toolPicker').classList.remove('active');
+  $('fileOverviewSection').style.display = 'none';
+  uploadZone.style.display = '';
+  $('playStoreSection').style.display = '';
+  $('versionCodeInput').value = '';
+  $('playStoreResults').innerHTML = '';
+  $('playStoreInput').value = '';
+  pendingFile = null;
+  pendingPlayStore = null;
+  fileInput.value = '';
+  window.history.replaceState(null, '', '/');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
