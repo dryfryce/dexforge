@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06060b"/>
+      <stop offset="100%" style="stop-color:#0c0c14"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff41"/>
+      <stop offset="100%" style="stop-color:#00d4ff"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#00ff41" flood-opacity="0.3"/>
+    </filter>
+    <filter id="textshadow">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#00ff41" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="200" rx="16" fill="url(#bg)"/>
+  
+  <!-- Grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00ff41" stroke-opacity="0.03" stroke-width="1"/>
+  </pattern>
+  <rect width="600" height="200" rx="16" fill="url(#grid)"/>
+  
+  <!-- Border -->
+  <rect width="598" height="198" x="1" y="1" rx="15" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+  
+  <!-- Icon -->
+  <g transform="translate(180, 50)" filter="url(#shadow)">
+    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="none" stroke="#00ff41" stroke-width="1.5" transform="scale(3)"/>
+    <path d="M2 17l10 5 10-5" fill="none" stroke="#00ff41" stroke-width="1.5" transform="scale(3)"/>
+    <path d="M2 12l10 5 10-5" fill="none" stroke="#00ff41" stroke-width="1.5" transform="scale(3)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="300" y="95" text-anchor="middle" font-family="monospace, 'Courier New'" font-size="48" font-weight="900" letter-spacing="8" filter="url(#textshadow)">
+    <tspan fill="#e0e0e8">DEX</tspan><tspan fill="#00ff41">FORGE</tspan>
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="300" y="125" text-anchor="middle" font-family="monospace, 'Courier New'" font-size="12" letter-spacing="4" fill="#6a6a80">
+    APK DECOMPILATION &amp; ANALYSIS ENGINE
+  </text>
+  
+  <!-- Stats bar -->
+  <g transform="translate(140, 145)">
+    <rect width="80" height="24" rx="4" fill="#00ff4120" stroke="#00ff41" stroke-width="0.5"/>
+    <text x="40" y="16" text-anchor="middle" font-family="monospace" font-size="10" fill="#00ff41" font-weight="600">40+ TOOLS</text>
+  </g>
+  <g transform="translate(235, 145)">
+    <rect width="95" height="24" rx="4" fill="#00d4ff20" stroke="#00d4ff" stroke-width="0.5"/>
+    <text x="47" y="16" text-anchor="middle" font-family="monospace" font-size="10" fill="#00d4ff" font-weight="600">PLAY STORE</text>
+  </g>
+  <g transform="translate(345, 145)">
+    <rect width="55" height="24" rx="4" fill="#ffb70020" stroke="#ffb700" stroke-width="0.5"/>
+    <text x="27" y="16" text-anchor="middle" font-family="monospace" font-size="10" fill="#ffb700" font-weight="600">IDA 9.3</text>
+  </g>
+  <g transform="translate(415, 145)">
+    <rect width="60" height="24" rx="4" fill="#ff3e3e20" stroke="#ff3e3e" stroke-width="0.5"/>
+    <text x="30" y="16" text-anchor="middle" font-family="monospace" font-size="10" fill="#ff3e3e" font-weight="600">GHIDRA</text>
+  </g>
+</svg>
