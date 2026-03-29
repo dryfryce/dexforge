@@ -101,8 +101,8 @@ TOOLS_DIR="$INSTALL_DIR/tools"
 # APKEditor
 if [ ! -f "$TOOLS_DIR/APKEditor.jar" ] || [ $(stat -c%s "$TOOLS_DIR/APKEditor.jar") -lt 1000000 ]; then
     info "Downloading APKEditor..."
-    wget -q -O "$TOOLS_DIR/APKEditor.jar" \
-        "https://github.com/REAndroid/APKEditor/releases/latest/download/APKEditor.jar" || \
+    APKEDITOR_URL=$(curl -s "https://api.github.com/repos/REAndroid/APKEditor/releases/latest" | grep browser_download_url | grep -o 'https://[^"]*\.jar' | head -1)
+    wget -q -O "$TOOLS_DIR/APKEditor.jar" "$APKEDITOR_URL" || \
     warn "APKEditor download failed — merge may not work"
 fi
 [ -f "$TOOLS_DIR/APKEditor.jar" ] && ok "APKEditor: $(stat -c%s "$TOOLS_DIR/APKEditor.jar") bytes"
