@@ -80,7 +80,7 @@ Installs Java, Node.js, Python, all tools, and sets up a systemd service. Works 
 
 ```bash
 # Pull and run
-docker run -d -p 4000:4000 --name dexforge --restart unless-stopped dryfryce/dexforge
+docker run -d -p 4000:4000 --name dexforge --restart unless-stopped prinol/dexforge
 
 # Or with docker-compose (persistent volumes)
 curl -s https://raw.githubusercontent.com/dryfryce/dexforge/main/docker-compose.yml -o docker-compose.yml
