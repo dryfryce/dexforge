@@ -68,7 +68,26 @@
 - **Java** 17+ (for JADX, Apktool, APKEditor)
 - **Python** 3.10+ (for Play Store integration & sigtool)
 
-### Installation
+### Option 1 — 1-Click Install (Recommended)
+
+```bash
+curl -s https://raw.githubusercontent.com/dryfryce/dexforge/main/install.sh | bash
+```
+
+Installs Java, Node.js, Python, all tools, and sets up a systemd service. Works on Ubuntu 22.04/24.04.
+
+### Option 2 — Docker
+
+```bash
+# Pull and run
+docker run -d -p 4000:4000 --name dexforge --restart unless-stopped dryfryce/dexforge
+
+# Or with docker-compose (persistent volumes)
+curl -s https://raw.githubusercontent.com/dryfryce/dexforge/main/docker-compose.yml -o docker-compose.yml
+docker compose up -d
+```
+
+### Option 3 — Manual
 
 ```bash
 # Clone the repo
@@ -79,19 +98,13 @@ cd dexforge
 npm install
 
 # Install Python dependencies (for Play Store & sigtool)
-pip install playstoreapi sigtool
+pip install playstoreapi sigtool google-play-scraper
 
 # Start the server
 node server.js
 ```
 
 Server starts at `http://localhost:4000`
-
-### Docker (Coming Soon)
-
-```bash
-docker run -p 4000:4000 dryfryce/dexforge
-```
 
 ## Features
 

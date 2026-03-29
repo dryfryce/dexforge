@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  dexforge:
+    image: dryfryce/dexforge:latest
+    # Or build locally:
+    # build: .
+    container_name: dexforge
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - dexforge_uploads:/app/uploads
+      - dexforge_output:/app/output
+      - dexforge_jobs:/app/jobs
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+
+volumes:
+  dexforge_uploads:
+  dexforge_output:
+  dexforge_jobs:
